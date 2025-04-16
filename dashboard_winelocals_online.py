@@ -16,7 +16,7 @@ def load_data():
     df["DATA DE VENDA"] = pd.to_datetime(df["DATA DE VENDA"], errors="coerce", dayfirst=True)
     df["DATA DA EXPERIÊNCIA"] = pd.to_datetime(df["DATA DA EXPERIÊNCIA"], errors="coerce", dayfirst=True)
     df["total"] = df["total"].astype(str).str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
-df["total"] = pd.to_numeric(df["total"], errors="coerce")
+    df["total"] = pd.to_numeric(df["total"], errors="coerce")
     df["item_id"] = pd.to_numeric(df["item_id"], errors="coerce")
     df["order_status"] = df["order_status"].astype(str).str.lower()
     return df
