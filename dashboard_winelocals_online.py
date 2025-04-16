@@ -5,9 +5,20 @@ import plotly.express as px
 from datetime import timedelta
 
 st.set_page_config(page_title="Wine Locals • Dashboard", layout="wide")
-st.title("Wine Locals • Dashboard de Vendas e Marketing 🍷")
 
-# Fonte de dados do Google Sheets
+# Título e identidade
+st.markdown("""
+    <style>
+    .main { background-color: #faf8f6; }
+    .block-container { padding-top: 2rem; }
+    .metric-label { font-size: 14px !important; color: #5f0f40; }
+    .metric-value { font-size: 24px !important; font-weight: bold; }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🍷 Wine Locals • Dashboard de Vendas")
+
+# Carregar dados do Google Sheets
 sheet_url = "https://docs.google.com/spreadsheets/d/1iGN1gCZILFY1ejwz6IBhrOikC_aIMs5xUkEsCE2DW3U/export?format=csv"
 
 @st.cache_data(ttl=600)
@@ -22,23 +33,31 @@ def load_data():
     return df
 
 df = load_data()
-
-# Filtrar apenas vendas aprovadas
 df = df[df["order_status"] == "aprovado"]
 
-# Seletor por data de venda ou de experiência
-date_type = st.sidebar.radio("Filtrar por", ["DATA DE VENDA", "DATA DA EXPERIÊNCIA"])
+# Filtros globais
+st.sidebar.header("Filtros")
+date_type = st.sidebar.radio("Data Base", ["DATA DE VENDA", "DATA DA EXPERIÊNCIA"])
 date_col = "DATA DE VENDA" if date_type == "DATA DE VENDA" else "DATA DA EXPERIÊNCIA"
 
-# Filtro de intervalo de datas
 min_date = df[date_col].min()
 max_date = df[date_col].max()
 start_date, end_date = st.sidebar.date_input("Período", [min_date, max_date])
 start_date = pd.to_datetime(start_date)
 end_date = pd.to_datetime(end_date)
 
-# Aplicar filtro por período
+clientes = st.sidebar.multiselect("Clientes", df["client_name"].dropna().unique())
+canais = st.sidebar.multiselect("Canais", df["CANAL"].dropna().unique())
+campanhas = st.sidebar.multiselect("Campanhas", df["Campanha"].dropna().unique())
+
+# Filtro aplicado
 df_filt = df[(df[date_col] >= start_date) & (df[date_col] <= end_date)]
+if clientes:
+    df_filt = df_filt[df_filt["client_name"].isin(clientes)]
+if canais:
+    df_filt = df_filt[df_filt["CANAL"].isin(canais)]
+if campanhas:
+    df_filt = df_filt[df_filt["Campanha"].isin(campanhas)]
 
 # Comparativos
 period_days = (end_date - start_date).days
@@ -47,10 +66,10 @@ previous_end = end_date - timedelta(days=period_days + 1)
 last_year_start = start_date - timedelta(days=365)
 last_year_end = end_date - timedelta(days=365)
 
-df_previous = df[(df[date_col] >= previous_start) & (df[date_col] <= previous_end)]
-df_last_year = df[(df[date_col] >= last_year_start) & (df[date_col] <= last_year_end)]
+df_prev = df[(df[date_col] >= previous_start) & (df[date_col] <= previous_end)]
+df_yoy = df[(df[date_col] >= last_year_start) & (df[date_col] <= last_year_end)]
 
-def calc_metrics(data):
+def get_metrics(data):
     return {
         "TPV": data["total"].sum(),
         "Compras": data["partner_order_id"].nunique(),
@@ -58,42 +77,51 @@ def calc_metrics(data):
         "Ticket Médio": data["total"].sum() / data["item_id"].sum() if data["item_id"].sum() > 0 else 0
     }
 
-atual = calc_metrics(df_filt)
-anterior = calc_metrics(df_previous)
-ano_passado = calc_metrics(df_last_year)
+def compare(val1, val2):
+    if val2 == 0: return "—", "—"
+    diff = val1 - val2
+    pct = (diff / val2) * 100
+    return f"{pct:+.1f}%", f"R$ {abs(diff):,.0f}"
 
-def diff(current, previous):
-    if previous == 0:
-        return "—", "—"
-    perc = ((current - previous) / previous) * 100
-    return f"{perc:.2f}%", f"R$ {abs(current - previous):,.2f}"
+# Abas principais
+aba = st.tabs(["📊 Visão Geral", "📈 Marketing & Canais", "📋 Tabela Detalhada"])[0]
 
-st.markdown(f"### Período: {start_date.date()} até {end_date.date()}")
+metrics = get_metrics(df_filt)
+metrics_prev = get_metrics(df_prev)
+metrics_yoy = get_metrics(df_yoy)
 
-col1, col2, col3, col4 = st.columns(4)
-with col1:
-    st.metric("TPV", f'R$ {atual["TPV"]:,.2f}',
-              help=f"Anterior: {diff(atual['TPV'], anterior['TPV'])[0]} ({diff(atual['TPV'], anterior['TPV'])[1]})\nAno anterior: {diff(atual['TPV'], ano_passado['TPV'])[0]}")
-with col2:
-    st.metric("Compras", atual["Compras"],
-              help=f"Anterior: {diff(atual['Compras'], anterior['Compras'])[0]}\nAno anterior: {diff(atual['Compras'], ano_passado['Compras'])[0]}")
-with col3:
-    st.metric("Tickets", int(atual["Tickets"]),
-              help=f"Anterior: {diff(atual['Tickets'], anterior['Tickets'])[0]}\nAno anterior: {diff(atual['Tickets'], ano_passado['Tickets'])[0]}")
-with col4:
-    st.metric("Ticket Médio", f'R$ {atual["Ticket Médio"]:,.2f}',
-              help=f"Anterior: {diff(atual['Ticket Médio'], anterior['Ticket Médio'])[0]}\nAno anterior: {diff(atual['Ticket Médio'], ano_passado['Ticket Médio'])[0]}")
+# VISÃO GERAL
+with st.tabs(["📊 Visão Geral", "📈 Marketing & Canais", "📋 Tabela Detalhada"])[0]:
+    st.markdown(f"### Período selecionado: `{start_date.date()}` até `{end_date.date()}`")
 
-# Gráfico
-vendas_diarias = df_filt.groupby(df_filt[date_col].dt.date)["total"].sum().reset_index()
-vendas_diarias.columns = ["Data", "TPV"]
-fig = px.line(vendas_diarias, x="Data", y="TPV", title="Vendas por Dia")
-st.plotly_chart(fig, use_container_width=True)
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("TPV", f'R$ {metrics["TPV"]:,.0f}', f'{compare(metrics["TPV"], metrics_prev["TPV"])[0]} vs mês anterior')
+    col2.metric("Compras", metrics["Compras"], f'{compare(metrics["Compras"], metrics_prev["Compras"])[0]} vs mês anterior')
+    col3.metric("Tickets", int(metrics["Tickets"]), f'{compare(metrics["Tickets"], metrics_prev["Tickets"])[0]} vs mês anterior')
+    col4.metric("Ticket Médio", f'R$ {metrics["Ticket Médio"]:,.2f}', f'{compare(metrics["Ticket Médio"], metrics_prev["Ticket Médio"])[0]} vs mês anterior')
 
-# Tabela de dados
-st.subheader("📋 Tabela de Vendas Filtradas")
-st.dataframe(df_filt[[
-    "partner_order_id", "DATA DE VENDA", "DATA DA EXPERIÊNCIA", "client_name", "experience",
-    "item_id", "total", "order_status", "Regiões", "CANAL", "Campanha"
-]])
-st.download_button("📥 Baixar CSV", data=df_filt.to_csv(index=False), file_name="vendas_filtradas.csv", mime="text/csv")
+    st.markdown("#### 📈 Evolução diária de TPV")
+    df_evol = df_filt.groupby(df_filt[date_col].dt.date)["total"].sum().reset_index()
+    df_evol.columns = ["Data", "TPV"]
+    fig = px.line(df_evol, x="Data", y="TPV")
+    st.plotly_chart(fig, use_container_width=True)
+
+# MARKETING
+with st.tabs(["📊 Visão Geral", "📈 Marketing & Canais", "📋 Tabela Detalhada"])[1]:
+    st.subheader("🎯 Distribuição de canais e campanhas")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(px.pie(df_filt, names="CANAL", title="Por Canal"), use_container_width=True)
+        st.plotly_chart(px.pie(df_filt, names="origin", title="Origem da Venda"), use_container_width=True)
+    with col2:
+        st.plotly_chart(px.pie(df_filt.dropna(subset=["Campanha"]), names="Campanha", title="Campanhas"), use_container_width=True)
+        st.plotly_chart(px.pie(df_filt.dropna(subset=["Estado de Compra"]), names="Estado de Compra", title="Estados"), use_container_width=True)
+
+# TABELA
+with st.tabs(["📊 Visão Geral", "📈 Marketing & Canais", "📋 Tabela Detalhada"])[2]:
+    st.subheader("📋 Tabela detalhada")
+    st.dataframe(df_filt[[
+        "partner_order_id", "DATA DE VENDA", "DATA DA EXPERIÊNCIA", "client_name", "experience",
+        "item_id", "total", "order_status", "Regiões", "CANAL", "Campanha"
+    ]], use_container_width=True)
+    st.download_button("📥 Baixar CSV", data=df_filt.to_csv(index=False), file_name="vendas_filtradas.csv", mime="text/csv")
