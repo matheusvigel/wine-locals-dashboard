@@ -9,7 +9,7 @@ st.set_page_config(page_title="Wine Locals • Dashboard", layout="wide", initia
 # Estilo Google-like e responsivo
 st.markdown("""
     <style>
-    html, body, .main { background-color: #ffffff; color: #000000; }
+    html, body, .main { background-color: #fefcf9; color: #111111; }
     .block-container { padding-top: 2rem; padding-bottom: 2rem; }
     h1, h2, h3, h4 {
         font-family: 'Google Sans', sans-serif;
@@ -64,7 +64,7 @@ date_col = "DATA DE VENDA" if date_type == "DATA DE VENDA" else "DATA DA EXPERI�
 
 min_date = df[date_col].min()
 max_date = df[date_col].max()
-start_date, end_date = st.sidebar.date_input("Período", [min_date, max_date])
+start_date, end_date = st.sidebar.date_input("Período", [pd.to_datetime('2025-04-01'), pd.to_datetime('2025-04-30')])
 start_date, end_date = pd.to_datetime(start_date), pd.to_datetime(end_date)
 
 clientes = st.sidebar.multiselect("Clientes", df["client_name"].dropna().unique())
