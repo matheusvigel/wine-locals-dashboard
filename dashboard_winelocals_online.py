@@ -64,7 +64,7 @@ date_col = "DATA DE VENDA" if date_type == "DATA DE VENDA" else "DATA DA EXPERI�
 
 min_date = df[date_col].min()
 max_date = df[date_col].max()
-start_date, end_date = st.sidebar.date_input("Período", [pd.to_datetime('2025-04-01'), pd.to_datetime('2025-04-30')])
+start_date, end_date = st.sidebar.date_input("Período", [pd.to_datetime('2025-04-01'), pd.to_datetime('2025-04-16')('2025-04-01'), pd.to_datetime('2025-04-30')])
 start_date, end_date = pd.to_datetime(start_date), pd.to_datetime(end_date)
 
 clientes = st.sidebar.multiselect("Clientes", df["client_name"].dropna().unique())
@@ -151,7 +151,7 @@ if "Campanha" in df_filt.columns:
         Tickets=("item_id", "sum")
     ).reset_index()
     campanha_tbl["Ticket Médio"] = campanha_tbl["TPV"] / campanha_tbl["Tickets"]
-    st.dataframe(campanha_tbl.sort_values("TPV", ascending=False), use_container_width=True)
+    st.dataframe(campanha_tbl.style.format({"TPV": "R$ {:,.2f}", "Ticket Médio": "R$ {:,.2f}"}).hide(axis='index'), use_container_width=True)
 else:
     st.warning("Nenhuma campanha registrada neste filtro.")
 st.markdown("</div>", unsafe_allow_html=True)
@@ -175,4 +175,22 @@ st.dataframe(df_filt[[
     "item_id", "total", "order_status", "Regiões", "CANAL", "Campanha"
 ]], use_container_width=True)
 st.download_button("📥 Baixar CSV", data=df_filt.to_csv(index=False), file_name="vendas_filtradas.csv", mime="text/csv")
+st.markdown("</div>", unsafe_allow_html=True)
+
+# Seção 6: Tabela de Clientes
+st.markdown("<div class='section'>", unsafe_allow_html=True)
+st.markdown("### 👥 Tabela de Clientes")
+
+if "client_name" in df_filt.columns:
+    clientes_tbl = df_filt.groupby("client_name").agg(
+        TPV=("total", "sum"),
+        Compras=("partner_order_id", "nunique"),
+        Tickets=("item_id", "sum")
+    ).reset_index()
+    clientes_tbl["Ticket Médio"] = clientes_tbl["TPV"] / clientes_tbl["Tickets"]
+    st.dataframe(clientes_tbl.sort_values("TPV", ascending=False).style.format({
+        "TPV": "R$ {:,.2f}", "Ticket Médio": "R$ {:,.2f}"
+    }).hide(axis='index'), use_container_width=True)
+else:
+    st.warning("Nenhum cliente identificado neste período.")
 st.markdown("</div>", unsafe_allow_html=True)
