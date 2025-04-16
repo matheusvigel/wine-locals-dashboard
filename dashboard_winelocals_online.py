@@ -134,7 +134,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     pie_canal = px.pie(df_filt, names="CANAL", title="Por Canal")
-    selected_canal = st.plotly_chart(pie_canal, use_container_width=True)
+    st.plotly_chart(pie_canal, use_container_width=True)
 
     pie_origem = px.pie(df_filt, names="origin", title="Origem da Venda")
     st.plotly_chart(pie_origem, use_container_width=True)
@@ -143,7 +143,6 @@ with col2:
     pie_estado = px.pie(df_filt.dropna(subset=["Estado de Compra"]), names="Estado de Compra", title="Estados")
     st.plotly_chart(pie_estado, use_container_width=True)
 
-# Campanhas como tabela
 st.markdown("### 📋 Tabela de Campanhas")
 if "Campanha" in df_filt.columns:
     campanha_tbl = df_filt.dropna(subset=["Campanha"]).groupby("Campanha").agg(
@@ -164,7 +163,7 @@ with col1:
     st.plotly_chart(px.pie(df_filt, names="CANAL", title="Por Canal"), use_container_width=True)
     st.plotly_chart(px.pie(df_filt, names="origin", title="Origem da Venda"), use_container_width=True)
 with col2:
-    st.plotly_chart(px.pie(# substituído pela tabela de campanhas), use_container_width=True)
+    st.plotly_chart(px.pie(df_filt.dropna(subset=["Campanha"]), names="Campanha", title="Campanhas"), use_container_width=True)
     st.plotly_chart(px.pie(df_filt.dropna(subset=["Estado de Compra"]), names="Estado de Compra", title="Estados"), use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
