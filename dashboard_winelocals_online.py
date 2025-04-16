@@ -64,7 +64,7 @@ date_col = "DATA DE VENDA" if date_type == "DATA DE VENDA" else "DATA DA EXPERI�
 
 min_date = df[date_col].min()
 max_date = df[date_col].max()
-start_date, end_date = st.sidebar.date_input("Período", [pd.to_datetime('2025-04-01'), pd.to_datetime('2025-04-16')('2025-04-01'), pd.to_datetime('2025-04-30')])
+start_date, end_date = st.sidebar.date_input("Período", [pd.to_datetime('2025-04-01'), pd.to_datetime('2025-04-16')])
 start_date, end_date = pd.to_datetime(start_date), pd.to_datetime(end_date)
 
 clientes = st.sidebar.multiselect("Clientes", df["client_name"].dropna().unique())
