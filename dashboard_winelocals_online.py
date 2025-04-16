@@ -62,6 +62,7 @@ regioes = st.sidebar.multiselect("Região", df["Regiões"].dropna().unique())
 canais = st.sidebar.multiselect("Canal", df["CANAL"].dropna().unique())
 
 # Aplicar filtros
+df = df[df["order_status"].str.lower() == "aprovado"]
 df_filt = df[(df[date_col] >= start_date) & (df[date_col] <= end_date)]
 if clientes:
     df_filt = df_filt[df_filt["client_name"].isin(clientes)]
@@ -71,6 +72,7 @@ if canais:
     df_filt = df_filt[df_filt["CANAL"].isin(canais)]
 
 # Comparativos
+period_days = (end_date - start_date).days
 period_days = (end_date - start_date).days
 previous_start = start_date - timedelta(days=period_days + 1)
 previous_end = end_date - timedelta(days=period_days + 1)
