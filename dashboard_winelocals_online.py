@@ -4,12 +4,12 @@ import pandas as pd
 import plotly.express as px
 from datetime import timedelta
 
-st.set_page_config(page_title="Wine Locals • Dashboard", layout="wide")
+st.set_page_config(page_title="Wine Locals • Dashboard", layout="wide", initial_sidebar_state="expanded")
 
 # Estilo Google-like e responsivo
 st.markdown("""
     <style>
-    html, body, .main { background-color: #f9f9f9; }
+    html, body, .main { background-color: #ffffff; color: #000000; }
     .block-container { padding-top: 2rem; padding-bottom: 2rem; }
     h1, h2, h3, h4 {
         font-family: 'Google Sans', sans-serif;
@@ -126,7 +126,37 @@ fig = px.line(evol, x="Data", y="TPV", markers=True)
 st.plotly_chart(fig, use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
+
 # Seção 3: Marketing
+st.markdown("<div class='section'>", unsafe_allow_html=True)
+st.markdown("### 📣 Distribuição de Canais e Campanhas")
+col1, col2 = st.columns(2)
+
+with col1:
+    pie_canal = px.pie(df_filt, names="CANAL", title="Por Canal")
+    selected_canal = st.plotly_chart(pie_canal, use_container_width=True)
+
+    pie_origem = px.pie(df_filt, names="origin", title="Origem da Venda")
+    st.plotly_chart(pie_origem, use_container_width=True)
+
+with col2:
+    pie_estado = px.pie(df_filt.dropna(subset=["Estado de Compra"]), names="Estado de Compra", title="Estados")
+    st.plotly_chart(pie_estado, use_container_width=True)
+
+# Campanhas como tabela
+st.markdown("### 📋 Tabela de Campanhas")
+if "Campanha" in df_filt.columns:
+    campanha_tbl = df_filt.dropna(subset=["Campanha"]).groupby("Campanha").agg(
+        TPV=("total", "sum"),
+        Compras=("partner_order_id", "nunique"),
+        Tickets=("item_id", "sum")
+    ).reset_index()
+    campanha_tbl["Ticket Médio"] = campanha_tbl["TPV"] / campanha_tbl["Tickets"]
+    st.dataframe(campanha_tbl.sort_values("TPV", ascending=False), use_container_width=True)
+else:
+    st.warning("Nenhuma campanha registrada neste filtro.")
+st.markdown("</div>", unsafe_allow_html=True)
+
 st.markdown("<div class='section'>", unsafe_allow_html=True)
 st.markdown("### 📣 Distribuição de Canais e Campanhas")
 col1, col2 = st.columns(2)
@@ -134,7 +164,7 @@ with col1:
     st.plotly_chart(px.pie(df_filt, names="CANAL", title="Por Canal"), use_container_width=True)
     st.plotly_chart(px.pie(df_filt, names="origin", title="Origem da Venda"), use_container_width=True)
 with col2:
-    st.plotly_chart(px.pie(df_filt.dropna(subset=["Campanha"]), names="Campanha", title="Campanhas"), use_container_width=True)
+    st.plotly_chart(px.pie(# substituído pela tabela de campanhas), use_container_width=True)
     st.plotly_chart(px.pie(df_filt.dropna(subset=["Estado de Compra"]), names="Estado de Compra", title="Estados"), use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
